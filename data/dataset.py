@@ -60,18 +60,21 @@ def generate_shadow_splits(path: str, k: int = 3, split_ratio=0.5, seed=42):
 
     full = MembershipDataset(raw.ids, raw.imgs, raw.labels, raw.membership, transform=transform)
     n_total = len(full)
-    n_per_shadow = int(split_ratio * n_total)
+    n_samples = int(2 * split_ratio * n_total)
 
     torch.manual_seed(seed)
-    indices = torch.randperm(n_total)
-
     splits = []
-    for i in range(k):
-        start = i * n_per_shadow
-        end = start + n_per_shadow * 2
-        sub_indices = indices[start:end]
-        shadow_full = torch.utils.data.Subset(full, sub_indices)
-        train, test = random_split(shadow_full, [n_per_shadow, n_per_shadow])
+
+    for _ in range(k):
+        if n_samples <= n_total:
+            indices = torch.randperm(n_total)[:n_samples].tolist()
+        else:
+            indices = torch.randint(0, n_total, size=(n_samples,)).tolist()  # ✅ allow overlapping
+
+        subset = torch.utils.data.Subset(full, indices)
+        train_size = n_samples // 2
+        test_size = n_samples - train_size
+        train, test = random_split(subset, [train_size, test_size])
         splits.append((train, test))
 
     return splits
