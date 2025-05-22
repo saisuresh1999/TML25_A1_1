@@ -3,7 +3,7 @@ mia_env/
 
 # Ignore model and dataset artifacts
 
-*.pkl
+
 test.csv
 
 # Bytecode and cache
