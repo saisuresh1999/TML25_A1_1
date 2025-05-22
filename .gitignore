@@ -9,3 +9,8 @@ test.csv
 # Bytecode and cache
 __pycache__/
 *.pyc
+TML Assignment 2.pdf
+.gitignore
+setup_structure.bat
+01-MIA-TML2025.pdf
+TML2025-TASK1.pdf
