@@ -1,0 +1,11 @@
+# Ignore environment
+mia_env/
+
+# Ignore model and dataset artifacts
+*.pt
+*.pkl
+test.csv
+
+# Bytecode and cache
+__pycache__/
+*.pyc
