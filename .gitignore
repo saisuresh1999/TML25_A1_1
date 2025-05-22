@@ -2,7 +2,7 @@
 mia_env/
 
 # Ignore model and dataset artifacts
-*.pt
+
 *.pkl
 test.csv
 
@@ -14,3 +14,6 @@ TML Assignment 2.pdf
 setup_structure.bat
 01-MIA-TML2025.pdf
 TML2025-TASK1.pdf
+01_MIA.pt
+priv_out.pt
+pub.pt
