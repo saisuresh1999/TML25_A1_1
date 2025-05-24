@@ -1,19 +1,15 @@
 import numpy as np
-from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 
 class AttackModel:
     def __init__(self):
-        self.clf = MLPClassifier(
-            hidden_layer_sizes=(128, 64, 32),  # Deep enough for 44-D input
-            activation='relu',
-            solver='adam',
-            alpha=1e-4,          # L2 regularization to prevent overfitting
-            batch_size='auto',
-            learning_rate='adaptive',
-            max_iter=500,
-            random_state=42,
-            verbose=False
+        self.clf = GradientBoostingClassifier(
+            n_estimators=100,
+            learning_rate=0.1,
+            max_depth=3,
+            subsample=0.9,
+            random_state=42
         )
 
     def train(self, features: np.ndarray, labels: np.ndarray):

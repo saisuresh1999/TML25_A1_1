@@ -9,22 +9,21 @@ class ShadowResNet18(nn.Module):
     def __init__(self, num_classes=44):
         super().__init__()
         self.model = resnet18(weights=None)
-        # Turn off dropout (if exists in residual blocks)
-        for m in self.model.modules():
-            if isinstance(m, torch.nn.Dropout):
-                m.p = 0.0
         self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
 
     def forward(self, x):
         return self.model(x)
 
-def train_shadow_model(train_dataset, val_dataset=None, device='cuda', epochs=10, batch_size=64, lr=0.001):
+def train_shadow_model(train_dataset, val_dataset=None, device='cuda', epochs=200, batch_size=64, lr=0.001, weight_decay=1e-4, patience=5):
     model = ShadowResNet18().to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size) if val_dataset else None
+
+    best_val_acc = 0
+    patience_counter = 0
 
     for epoch in range(epochs):
         model.train()
@@ -52,6 +51,17 @@ def train_shadow_model(train_dataset, val_dataset=None, device='cuda', epochs=10
                     outputs = model(x)
                     correct += (outputs.argmax(1) == y).sum().item()
                     total += x.size(0)
-            print(f"[Epoch {epoch+1}] Validation Accuracy: {correct/total:.4f}")
+            val_acc = correct / total
+            print(f"[Epoch {epoch+1}] Validation Accuracy: {val_acc:.4f}")
+
+            # Early stopping
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    print("Early stopping triggered.")
+                    break
 
     return model
