@@ -35,7 +35,7 @@ def extract_features(model, dataset, device='cuda', batch_size=64, include_stats
 
             if include_stats:
                 conf, ent, marg = compute_softmax_features(probs)
-                base_feats = np.hstack([probs, conf, ent, marg])  # [44 + 3]
+                base_feats = np.hstack([probs, conf, ent, marg])
             else:
                 base_feats = probs
 

@@ -2,11 +2,9 @@ import torch
 from torch.utils.data import Dataset, random_split
 from torchvision import transforms
 
-# Define constants
 MEAN = [0.2980, 0.2962, 0.2987]
 STD = [0.2886, 0.2875, 0.2889]
 
-# Define Dataset first (needed before registering!)
 class MembershipDataset(Dataset):
     def __init__(self, ids, imgs, labels, memberships=None, transform=None):
         self.ids = ids
@@ -27,7 +25,6 @@ class MembershipDataset(Dataset):
     def __len__(self):
         return len(self.ids)
 
-# Now safe to register!
 from torch.serialization import add_safe_globals
 add_safe_globals([MembershipDataset])
 

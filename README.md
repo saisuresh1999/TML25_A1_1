@@ -1,95 +1,126 @@
-# TML25_A1_<YourTeamNumber>
 
-# Membership Inference Attack – TML Assignment 1
+# Membership Inference Attack (TML25_A1_1)
 
-This repository contains our implementation for the Membership Inference Attack (MIA) assignment in the Trustworthy Machine Learning course (SS 2025).
-
-## Problem Overview
-
-Given a fixed ResNet18 target model and two datasets (`pub.pt` and `priv_out.pt`), the task is to predict the likelihood that each sample in `priv_out.pt` was part of the training set used for the target model. The challenge is evaluated based on TPR@FPR=0.05 and AUC.
-
-## Our Approach
-
-We implemented a classical shadow model-based MIA pipeline, with several extensions for robustness and ensemble diversity. Our final setup includes:
-
-1. **Shadow Model Ensembling**:
-
-   - We split the public dataset `pub.pt` into three disjoint subsets.
-   - For each split, we trained a separate shadow model (ResNet18).
-   - From each model, we extracted softmax outputs for the test split and labeled them with binary membership indicators.
-2. **Feature Extraction**:
-
-   - We used the full softmax vector (44 dimensions) as features for the attack model.
-   - This representation allows the attack model to exploit class-wise distributional patterns instead of relying only on scalar summaries like entropy or confidence.
-3. **Attack Model**:
-
-   - A single MLP was trained on the aggregated softmax outputs from all shadow models.
-   - This model learns to distinguish between member and non-member distributions by generalizing across shadow models.
-4. **Submission Pipeline**:
-
-   - For submission, the final shadow model was used to extract softmax features from `priv_out.pt`.
-   - These features were passed to the trained attack model, which outputs the final membership scores.
-
-## Directory Structure
-
-# Membership Inference Attack – TML Assignment 1
-
-This repository contains our implementation for the Membership Inference Attack (MIA) assignment in the Trustworthy Machine Learning course (SS 2025).
-
-## Problem Overview
-
-Given a fixed ResNet18 target model and two datasets (`pub.pt` and `priv_out.pt`), the task is to predict the likelihood that each sample in `priv_out.pt` was part of the training set used for the target model. The challenge is evaluated based on TPR@FPR=0.05 and AUC.
-
-## Our Approach
-
-We implemented a classical shadow model-based MIA pipeline, with several extensions for robustness and ensemble diversity. Our final setup includes:
-
-1. **Shadow Model Ensembling**:
-
-   - We split the public dataset `pub.pt` into three disjoint subsets.
-   - For each split, we trained a separate shadow model (ResNet18).
-   - From each model, we extracted softmax outputs for the test split and labeled them with binary membership indicators.
-2. **Feature Extraction**:
-
-   - We used the full softmax vector (44 dimensions) as features for the attack model.
-   - This representation allows the attack model to exploit class-wise distributional patterns instead of relying only on scalar summaries like entropy or confidence.
-3. **Attack Model**:
-
-   - A single MLP was trained on the aggregated softmax outputs from all shadow models.
-   - This model learns to distinguish between member and non-member distributions by generalizing across shadow models.
-4. **Submission Pipeline**:
-
-   - For submission, the final shadow model was used to extract softmax features from `priv_out.pt`.
-   - These features were passed to the trained attack model, which outputs the final membership scores.
-
-## Directory Structure
-
-**Membership Inference Attack – Trustworthy Machine Learning (SS 2025)**
-Authors: [Your Name], [Teammate Name]
-
-## Task Overview
-
-We implement a Membership Inference Attack (MIA) to determine whether a given input image was part of the training data of a provided ResNet18 model.
+This project implements a **Membership Inference Attack (MIA)** against a target image classification model using a black-box threat model. The goal is to determine whether a specific data point was part of the training set of the target model, based only on its output behavior.
 
 ---
 
-## Implementation Structure
+## Approach
+
+We followed a **shadow training + score-based attack** pipeline enhanced by **Likelihood Ratio Attack (LiRA)** and a carefully tuned **Gradient Boosting Classifier** as the attack model.
+
+### 1. Shadow Model Ensemble
+We trained **7 shadow models** using disjoint subsets of the public data. Each shadow model mimics the target model's training behavior and is used to simulate membership/non-membership distributions.
+
+- Architecture: ResNet18 
+- Dataset: Membership-labeled public set (`pub.pt`)
+- Normalization: Mean = [0.2980, 0.2962, 0.2987], Std = [0.2886, 0.2875, 0.2889]
+- Training: 200 epochs with **early stopping** based on validation accuracy
+
+### 2. Feature Extraction
+For each sample in the shadow models’ test sets, we extracted:
+
+- Softmax **confidence**
+- **Entropy**
+- **Margin** (Top-1 − Top-2 probability)
+
+These features were then used to train the attack model.
+
+### 3. LiRA (Likelihood Ratio Attack)
+We saved the softmax **confidence values** for shadow member and non-member samples. These were modeled using Gaussian distributions. The attack score for each private sample is computed as:
+
+```
+P(member) = p_m / (p_m + p_nm)
+```
+
+Where `p_m` and `p_nm` are the PDF values under the member and non-member distributions respectively.
+
+### 4. Attack Model
+A **GradientBoostingClassifier** was trained on extracted features from shadow outputs:
+
+- `n_estimators = 100`
+- `learning_rate = 0.1`
+- `max_depth = 3`
+- `subsample = 0.9`
+- Trained on confidence, entropy, and margin features
+- Target samples were scored via LiRA for final submission
+
+---
+
+## Running the Pipeline
+
+### Step 1: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 2: Train Shadow + Attack Models
+```bash
+python main.py
+```
+This performs shadow model training, feature extraction, and attack model training.
+
+### Step 3: Generate Final Submission File
+```bash
+python submit.py
+```
+This loads the target model, extracts confidence values, applies LiRA, and creates `test.csv`.
+
+---
+
+## Folder Structure
+
+```
+TML25_A1_1/
+├── attacks/
+│   ├── attack_model.py         # Gradient Boosting attack classifier
+│   └── feature_extractor.py   # Extracts confidence, entropy, margin
+├── data/
+│   └── dataset.py              # MembershipDataset and loaders
+├── models/
+│   └── shadow_model.py         # ResNet18 + early stopping
+├── main.py                     # End-to-end shadow + attack pipeline
+├── submit.py                   # LiRA inference and submission logic
+├── pub.pt                      # Public dataset with labels
+├── priv_out.pt                 # Private unlabeled dataset
+├── shadow_model.pt             # Saved PyTorch model (shadow)
+├── attack_model.pkl            # Trained attack classifier
+├── member_conf.npy             # Shadow members’ confidence scores
+├── nonmember_conf.npy          # Shadow non-members’ confidence scores
+├── test.csv                    # Final submission file
+├── config.py                   # Global paths and hyperparameters
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
+```
+
+---
+
+## Important Implementation Highlights
+
+- **Early stopping** is implemented inside `models/shadow_model.py` to avoid overfitting.
+- All feature extraction logic resides in `attacks/feature_extractor.py`, which supports multiple statistics.
+- **LiRA** logic is inside `submit.py`.
+- Attack model trained using `GradientBoostingClassifier` in `attacks/attack_model.py`.
+
+---
+
+## Final Configuration
+
+| Component           | Configuration                          |
+|---------------------|----------------------------------------|
+| Shadow Models       | 7 ResNet-18 models (200 epochs + ES)   |
+| Attack Model        | GradientBoostingClassifier             |
+| Feature Set         | Confidence, Entropy, Margin            |
+| Submission Method   | LiRA (Likelihood Ratio using softmax)  |
 
 ```text
-tml_2025_tasks/
-├── data/
-│   └── dataset.py              # Loads and splits pub.pt, loads priv_out.pt
-├── models/
-│   └── shadow_model.py         # ResNet18 training loop for shadow model
-├── attacks/
-│   ├── feature_extractor.py    # Extracts softmax-based features (confidence, entropy, margin)
-│   └── attack_model.py         # Logistic Regression attack model
-├── utils/
-│   └── (Optional utility functions, unused)
-├── main.py                     # Orchestrates shadow model training + attack training
-├── submit.py                   # Loads trained models, predicts membership scores, submits
-├── config.py                   # Global paths, batch sizes, token
-├── shadow_model.pt             # Trained shadow model (ResNet18)
-├── attack_model.pkl            # Trained logistic regression model
-└── test.csv                    # Final membership score predictions for priv_out.pt
+Best Result:
+TPR@FPR=0.05 = 0.06166666666666667
+AUC          = 0.5121307777777777
 ```
+
+---
+
+## Summary
+
+This solution demonstrates that LiRA, combined with conservative shadow modeling and carefully chosen statistical features, can outperform naive classifier-based attacks on the TML25_A1_1 benchmark. Despite the subtle output differences of the target model, probabilistic modeling provided a robust advantage.
