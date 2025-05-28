@@ -3,17 +3,11 @@ mia_env/
 
 # Ignore model and dataset artifacts
 
-
-test.csv
-
 # Bytecode and cache
 __pycache__/
 *.pyc
-TML Assignment 2.pdf
 .gitignore
 setup_structure.bat
-01-MIA-TML2025.pdf
-TML2025-TASK1.pdf
 01_MIA.pt
 priv_out.pt
 pub.pt
