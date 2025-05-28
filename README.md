@@ -92,7 +92,9 @@ TML25_A1_1/
 ├── requirements.txt            # Python dependencies
 └── README.md                   # This file
 ```
-
+## Note: You must download the dataset files yourself and specify them in `config.py`:
+- PUB_PATH = "path/to/pub.pt"
+- PRIV_PATH = "path/to/priv_out.pt"
 ---
 
 ## Important Implementation Highlights
